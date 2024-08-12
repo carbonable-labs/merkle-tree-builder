@@ -124,3 +124,29 @@ fn build_tree(leaves: Vec<Node>) -> Node {
     }
     nodes.remove(0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merkle_tree_creation() {
+        let airdrops = vec![
+            Allocation { address: "0x123".to_string(), amount: "100".to_string() },
+            Allocation { address: "0x456".to_string(), amount: "200".to_string() },
+        ];
+        let tree = MerkleTree::new(airdrops);
+        assert_eq!(tree.airdrops.len(), 2);
+    }
+
+    #[test]
+    fn test_merkle_tree_proof() {
+        let airdrops = vec![
+            Allocation { address: "0x123".to_string(), amount: "100".to_string() },
+            Allocation { address: "0x456".to_string(), amount: "200".to_string() },
+        ];
+        let tree = MerkleTree::new(airdrops);
+        let proof = tree.build_address_calldata("0x123");
+        assert!(proof.is_ok());
+    }
+}

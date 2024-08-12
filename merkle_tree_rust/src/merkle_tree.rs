@@ -78,6 +78,12 @@ impl MerkleTree {
 
         Ok(calldata.iter().map(|f| format!("{:#x}", f)).collect())
     }
+
+    pub fn merge_merkle_trees(&self, new_allocations: Vec<Allocation>) -> MerkleTree {
+        let mut combined_allocations = self.get_allocations().clone();
+        combined_allocations.extend(new_allocations.clone());
+        MerkleTree::new(combined_allocations)
+    }
 }
 
 impl Node {

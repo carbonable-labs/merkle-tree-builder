@@ -180,3 +180,53 @@ fn test_merkle_tree_with_mock_data() {
         );
     }
 }
+
+#[test]
+fn test_merge_trees_with_new_allocations() {
+    // Load the old Merkle tree
+    let file = File::open("tests/mock_allocations_first_wave.json").expect("File not found");
+    let reader = BufReader::new(file);
+    let old_allocations: Vec<Allocation> = from_reader(reader).expect("Error reading JSON");
+
+    let old_tree = MerkleTree::new(old_allocations.clone());
+
+    // Load the new allocations from the JSON file
+    let file = File::open("tests/mock_allocations_second_wave.json").expect("File not found");
+    let reader = BufReader::new(file);
+    let new_allocations: Vec<Allocation> = from_reader(reader).expect("Error reading JSON");
+
+    // Merge the trees
+    let merged_tree = old_tree.merge_merkle_trees(new_allocations.clone());
+
+    assert!(merged_tree.get_allocations().len() > old_tree.get_allocations().len());
+    println!("Merged Root hash: {:?}", merged_tree.root.value);
+    assert!(format!("{:#x}", merged_tree.root.value).starts_with("0x"));
+
+    // Verify proof generation for each allocation from the old tree
+    for allocation in old_allocations.iter() {
+        let proof = merged_tree.build_address_calldata(&allocation.address, allocation.amount, &allocation.timestamp);
+        assert!(proof.is_ok(), "Proof generation failed for old allocation {:?}", allocation.address);
+
+        let calldata = proof.unwrap();
+        assert!(
+            calldata.contains(&format!("{:#x}", u64_to_felt(allocation.amount))),
+            "The amount {:#x} is not included in the proof for address {}",
+            allocation.amount,
+            allocation.address
+        );
+    }
+
+    // Verify proof generation for each allocation from the new tree
+    for allocation in new_allocations.iter() {
+        let proof = merged_tree.build_address_calldata(&allocation.address, allocation.amount, &allocation.timestamp);
+        assert!(proof.is_ok(), "Proof generation failed for new allocation {:?}", allocation.address);
+
+        let calldata = proof.unwrap();
+        assert!(
+            calldata.contains(&format!("{:#x}", u64_to_felt(allocation.amount))),
+            "The amount {:#x} is not included in the proof for address {}",
+            allocation.amount,
+            allocation.address
+        );
+    }
+}

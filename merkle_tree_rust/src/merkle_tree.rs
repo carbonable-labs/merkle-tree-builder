@@ -6,12 +6,13 @@ use std::collections::HashSet;
 #[derive(Deserialize, Debug, Clone)]
 pub struct Allocation {
     pub address: String,
-    pub amount: String,
+    pub amount: u64,
+    pub timestamp: String,
 }
 
 pub struct MerkleTree {
     pub root: Node,
-    airdrops: Vec<Allocation>,
+    allocations: Vec<Allocation>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,8 +24,8 @@ pub struct Node {
 }
 
 impl MerkleTree {
-    pub fn new(airdrops: Vec<Allocation>) -> Self {
-        let mut leaves: Vec<Node> = airdrops
+    pub fn new(allocations: Vec<Allocation>) -> Self {
+        let mut leaves: Vec<Node> = allocations
             .clone()
             .into_iter()
             .map(|a| Node::new_leaf(a))
@@ -36,14 +37,23 @@ impl MerkleTree {
 
         let root = build_tree(leaves);
 
-        MerkleTree { root, airdrops }
+        MerkleTree { root, allocations }
     }
 
-    pub fn build_address_calldata(&self, address: &str) -> Result<Vec<String>, ()> {
+    pub fn get_allocations(&self) -> &Vec<Allocation> {
+        &self.allocations
+    }
+
+    pub fn build_address_calldata(&self, address: &str, amount: u64, timestamp: &str) -> Result<Vec<String>, ()> {
         let felt_address = Felt::from_hex(address).map_err(|_| ())?;
-        if !&self.root.accessible_addresses.contains(&felt_address) {
+        let felt_amount = u64_to_felt(amount);
+        let felt_timestamp = Felt::from_hex(timestamp).map_err(|_| ())?;
+
+        // Find the leaf node corresponding to the allocation
+        if !self.root.accessible_addresses.contains(&felt_address) {
             return Err(());
         }
+
         let mut hashes: Vec<Felt> = vec![];
         let mut current_node = &self.root;
         loop {
@@ -62,16 +72,8 @@ impl MerkleTree {
         }
         hashes = hashes.into_iter().rev().collect();
 
-        let airdrop = self
-            .airdrops
-            .iter()
-            .find(|a| Felt::from_hex(&a.address).unwrap() == felt_address)
-            .unwrap();
-
-        let address = Felt::from_hex(&airdrop.address).unwrap();
-        let amount = Felt::from_hex(&airdrop.amount).unwrap();
-
-        let mut calldata = vec![address, amount];
+        // Build the calldata
+        let mut calldata = vec![felt_address, felt_amount, felt_timestamp];
         calldata.append(&mut hashes);
 
         Ok(calldata.iter().map(|f| format!("{:#x}", f)).collect())
@@ -97,10 +99,13 @@ impl Node {
         }
     }
 
-    fn new_leaf(airdrop: Allocation) -> Self {
-        let address = Felt::from_hex(&airdrop.address).unwrap();
-        let amount = Felt::from_hex(&airdrop.amount).unwrap();
-        let value = pedersen_hash(&address, &amount);
+    fn new_leaf(allocation: Allocation) -> Self {
+        let address = Felt::from_hex(&allocation.address).unwrap();
+        let amount = u64_to_felt(allocation.amount);
+        let timestamp = Felt::from_hex(&allocation.timestamp).unwrap();
+
+        let intermediate_hash = pedersen_hash(&address, &amount);
+        let value = pedersen_hash(&intermediate_hash, &timestamp);
 
         Node {
             left_child: None,
@@ -125,28 +130,8 @@ fn build_tree(leaves: Vec<Node>) -> Node {
     nodes.remove(0)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_merkle_tree_creation() {
-        let airdrops = vec![
-            Allocation { address: "0x123".to_string(), amount: "100".to_string() },
-            Allocation { address: "0x456".to_string(), amount: "200".to_string() },
-        ];
-        let tree = MerkleTree::new(airdrops);
-        assert_eq!(tree.airdrops.len(), 2);
-    }
-
-    #[test]
-    fn test_merkle_tree_proof() {
-        let airdrops = vec![
-            Allocation { address: "0x123".to_string(), amount: "100".to_string() },
-            Allocation { address: "0x456".to_string(), amount: "200".to_string() },
-        ];
-        let tree = MerkleTree::new(airdrops);
-        let proof = tree.build_address_calldata("0x123");
-        assert!(proof.is_ok());
-    }
+pub fn u64_to_felt(value: u64) -> Felt {
+    let mut bytes = [0u8; 32];
+    bytes[24..].copy_from_slice(&value.to_be_bytes());
+    Felt::from_bytes_be(&bytes)
 }

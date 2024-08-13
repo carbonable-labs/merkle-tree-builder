@@ -1,0 +1,20 @@
+[package]
+name = "merkle_tree_cairo"
+version = "0.1.0"
+edition = "2023_11"
+
+[dependencies]
+starknet = ">=2.6.0"
+
+# See more keys and their definitions at https://docs.swmansion.com/scarb/docs/reference/manifest.html
+
+[dev-dependencies]
+snforge_std = { git = "https://github.com/foundry-rs/starknet-foundry", tag = "v0.26.0" }
+
+[scripts]
+test = "snforge test"
+
+[[target.starknet-contract]]
+sierra = true
+casm = true
+

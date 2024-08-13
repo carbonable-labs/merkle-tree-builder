@@ -2,12 +2,7 @@ use starknet::{ContractAddress};
 
 #[starknet::interface]
 pub trait IClaimer<TContractState> {
-    fn claim(
-        ref self: TContractState,
-        amount: u128,
-        timestamp: u128,
-        proof: Array::<felt252>
-    );
+    fn claim(ref self: TContractState, amount: u128, timestamp: u128, proof: Array::<felt252>);
 
     fn check_claimed(
         ref self: TContractState, claimee: ContractAddress, timestamp: u128, amount: u128
@@ -23,11 +18,6 @@ pub mod Claimer {
     use starknet::{ContractAddress, ClassHash, get_caller_address};
     use merkle_tree_cairo::merkle_tree::MerkleTreeTrait;
     use core::hash::LegacyHash;
-
-    // // ABI
-    // #[abi(embed_v0)]
-    // impl MintImpl = OffsetComponent::OffsetHandlerImpl<ContractState>;
-    // impl MintInternalImpl = OffsetComponent::InternalImpl<ContractState>;
 
     #[derive(Copy, Drop, Debug, Hash, starknet::Store, Serde, PartialEq)]
     struct Allocation {
@@ -48,26 +38,21 @@ pub mod Claimer {
 
     #[event]
     #[derive(Drop, starknet::Event)]
-    enum Event {
+    pub enum Event {
         Claimed: Claimed,
     }
 
     #[derive(Drop, starknet::Event)]
-    struct Claimed {
-        claimee: ContractAddress,
-        amount: u128,
-        timestamp: u128
+    pub struct Claimed {
+        pub claimee: ContractAddress,
+        pub amount: u128,
+        pub timestamp: u128
     }
 
     // Externals
     #[abi(embed_v0)]
     impl ClaimerImpl of super::IClaimer<ContractState> {
-        fn claim(
-            ref self: ContractState,
-            amount: u128,
-            timestamp: u128,
-            proof: Array::<felt252>
-        ) {
+        fn claim(ref self: ContractState, amount: u128, timestamp: u128, proof: Array::<felt252>) {
             let mut merkle_tree = MerkleTreeTrait::new();
             let claimee = get_caller_address();
             // [Verify the proof]
@@ -78,17 +63,10 @@ pub mod Claimer {
             let intermediate_hash = LegacyHash::hash(claimee_felt, amount_felt);
             let leaf = LegacyHash::hash(intermediate_hash, timestamp_felt);
 
-            println!("Address: {:?}", claimee_felt);
-            println!("Amount: {:?}", amount_felt);
-            println!("Timestamp: {:?}", timestamp_felt);
-            println!("intermediate_hash: {}", intermediate_hash);
             println!("leaf: {}", leaf);
-            let root_computed = merkle_tree.compute_root(leaf, proof.span());
-            println!("proof.at(0): {}", proof.at(0));
-            let stored_root = self.merkle_root.read();
 
-            println!("root_computed: {}", root_computed);
-            println!("stored_root: {}", stored_root);
+            let root_computed = merkle_tree.compute_root(leaf, proof.span());
+            let stored_root = self.merkle_root.read();
             assert(root_computed == stored_root, 'Invalid proof');
 
             // [Verify not already claimed]

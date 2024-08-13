@@ -53,6 +53,55 @@ fn test_merkle_tree_proof() {
 }
 
 #[test]
+fn test_merkle_tree_double_alloc() {
+    let allocations = vec![
+        Allocation {
+            address: "0x123".to_string(),
+            amount: 100,
+            timestamp: "0x1".to_string(),
+        },
+        Allocation {
+            address: "0x456".to_string(),
+            amount: 200,
+            timestamp: "0x2".to_string(),
+        },
+        Allocation {
+            address: "0x123".to_string(),
+            amount: 110,
+            timestamp: "0x13".to_string(),
+        },
+    ];
+    let tree = MerkleTree::new(allocations.clone());
+    let allocation = &allocations[0];
+    let proof = tree.build_address_calldata(
+        &allocation.address,
+        allocation.amount,
+        &allocation.timestamp,
+    );
+
+    println!("proof 1 {:?}", proof);
+
+    let allocation = &allocations[2];
+    let proof = tree.build_address_calldata(
+        &allocation.address,
+        allocation.amount,
+        &allocation.timestamp,
+    );
+    println!("proof 2{:?}", proof);
+    assert!(proof.is_ok());
+
+    let hashroot = tree.root.value;
+    println!("hashroot {:?}", hashroot);
+
+    // [Verification]
+    let calldata = proof.unwrap();
+    assert_eq!(calldata.len(), 4 + 1); // Address, amount, timestamp + 1 hash of proof
+    assert_eq!(calldata[0], "0x123");
+    assert_eq!(calldata[1], "0x6e"); // 100 in hex is 0x64
+    assert_eq!(calldata[2], "0x13");
+}
+
+#[test]
 fn test_single_allocation() {
     // If odd number of allocations, the last one is duplicated
     let allocations = vec![Allocation {

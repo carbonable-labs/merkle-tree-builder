@@ -2,15 +2,23 @@ use serde::Deserialize;
 use starknet::core::types::Felt;
 use starknet_crypto::pedersen_hash;
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct Allocation {
+#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]pub struct Allocation {
     pub address: String,
     pub amount: u64,
     pub timestamp: String,
 }
 
-pub struct MerkleTree {
+impl Hash for Allocation {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.address.hash(state);
+        self.amount.hash(state);
+        self.timestamp.hash(state);
+    }
+}
+
+pub struct MerkleTree { 
     pub root: Node,
     allocations: Vec<Allocation>,
 }
@@ -19,7 +27,7 @@ pub struct MerkleTree {
 pub struct Node {
     pub left_child: Option<Box<Node>>,
     pub right_child: Option<Box<Node>>,
-    pub accessible_addresses: HashSet<Felt>,
+    pub accessible_allocations: HashSet<Allocation>,
     pub value: Felt,
 }
 
@@ -50,39 +58,50 @@ impl MerkleTree {
         amount: u64,
         timestamp: &str,
     ) -> Result<Vec<String>, ()> {
+        let allocation = Allocation {
+            address: address.to_string(),
+            amount,
+            timestamp: timestamp.to_string(),
+        };
+    
+        // Compute the leaf node hash for this allocation
         let felt_address = Felt::from_hex(address).map_err(|_| ())?;
         let felt_amount = u64_to_felt(amount);
         let felt_timestamp = Felt::from_hex(timestamp).map_err(|_| ())?;
-
-        // Find the leaf node corresponding to the allocation
-        if !self.root.accessible_addresses.contains(&felt_address) {
-            return Err(());
-        }
-
+    
+        let intermediate_hash = pedersen_hash(&felt_address, &felt_amount);
+        let target_leaf = pedersen_hash(&intermediate_hash, &felt_timestamp);
+    
+        // Traverse the tree to find the proof path for the target leaf
         let mut hashes: Vec<Felt> = vec![];
         let mut current_node = &self.root;
+    
         loop {
-            let left = current_node.left_child.as_ref().unwrap();
-            let right = current_node.right_child.as_ref().unwrap();
-            if left.accessible_addresses.contains(&felt_address) {
-                hashes.push(right.value);
-                current_node = left;
-            } else {
-                hashes.push(left.value);
-                current_node = right;
-            }
-            if current_node.left_child.is_none() {
+            if current_node.left_child.is_none() && current_node.right_child.is_none() {
                 break;
             }
+    
+            let left = current_node.left_child.as_ref().unwrap();
+            let right = current_node.right_child.as_ref().unwrap();
+    
+            if left.accessible_allocations.contains(&allocation) {
+                hashes.push(right.value);
+                current_node = left;
+            } else if right.accessible_allocations.contains(&allocation) {
+                hashes.push(left.value);
+                current_node = right;
+            } else {
+                return Err(()); // Allocation not found
+            }
         }
-        hashes = hashes.into_iter().rev().collect();
-
-        // Build the calldata
+    
+        hashes.reverse();
         let mut calldata = vec![felt_address, felt_amount, felt_timestamp];
-        calldata.append(&mut hashes);
-
+        calldata.extend(hashes);
+    
         Ok(calldata.iter().map(|f| format!("{:#x}", f)).collect())
     }
+    
 
     pub fn merge_merkle_trees(&self, new_allocations: Vec<Allocation>) -> MerkleTree {
         let mut combined_allocations = self.get_allocations().clone();
@@ -98,14 +117,14 @@ impl Node {
             false => (b, a),
         };
         let value = pedersen_hash(&left_child.value, &right_child.value);
-        let mut accessible_addresses = HashSet::new();
-        accessible_addresses.extend(left_child.accessible_addresses.clone());
-        accessible_addresses.extend(right_child.accessible_addresses.clone());
+        let mut accessible_allocations = HashSet::new();
+        accessible_allocations.extend(left_child.accessible_allocations.clone());
+        accessible_allocations.extend(right_child.accessible_allocations.clone());
 
         Node {
             left_child: Some(Box::new(left_child)),
             right_child: Some(Box::new(right_child)),
-            accessible_addresses,
+            accessible_allocations,
             value,
         }
     }
@@ -121,7 +140,7 @@ impl Node {
         Node {
             left_child: None,
             right_child: None,
-            accessible_addresses: vec![address].into_iter().collect(),
+            accessible_allocations: vec![allocation].into_iter().collect(),
             value,
         }
     }

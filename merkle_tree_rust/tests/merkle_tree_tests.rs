@@ -1,19 +1,20 @@
+use merkle_tree_rust::{u64_to_felt, Allocation, MerkleTree};
+use serde_json::from_reader;
 use std::fs::File;
 use std::io::BufReader;
-use serde_json::from_reader;
-use merkle_tree_rust::{Allocation, MerkleTree, u64_to_felt};
+
 #[test]
 fn test_merkle_tree_creation() {
     let allocations = vec![
-        Allocation { 
-            address: "0x123".to_string(), 
+        Allocation {
+            address: "0x123".to_string(),
             amount: 100,
-            timestamp: "0x1".to_string(), 
+            timestamp: "0x1".to_string(),
         },
-        Allocation { 
-            address: "0x456".to_string(), 
+        Allocation {
+            address: "0x456".to_string(),
             amount: 200,
-            timestamp: "0x2".to_string(), 
+            timestamp: "0x2".to_string(),
         },
     ];
     let tree = MerkleTree::new(allocations);
@@ -23,20 +24,24 @@ fn test_merkle_tree_creation() {
 #[test]
 fn test_merkle_tree_proof() {
     let allocations = vec![
-        Allocation { 
-            address: "0x123".to_string(), 
+        Allocation {
+            address: "0x123".to_string(),
             amount: 100,
-            timestamp: "0x1".to_string(), 
+            timestamp: "0x1".to_string(),
         },
-        Allocation { 
-            address: "0x456".to_string(), 
+        Allocation {
+            address: "0x456".to_string(),
             amount: 200,
-            timestamp: "0x2".to_string(), 
+            timestamp: "0x2".to_string(),
         },
     ];
     let tree = MerkleTree::new(allocations.clone());
     let allocation = &allocations[0];
-    let proof = tree.build_address_calldata(&allocation.address, allocation.amount, &allocation.timestamp);
+    let proof = tree.build_address_calldata(
+        &allocation.address,
+        allocation.amount,
+        &allocation.timestamp,
+    );
     assert!(proof.is_ok());
 
     // [Verification]
@@ -50,13 +55,11 @@ fn test_merkle_tree_proof() {
 #[test]
 fn test_single_allocation() {
     // If odd number of allocations, the last one is duplicated
-    let allocations = vec![
-        Allocation { 
-            address: "0x123".to_string(), 
-            amount: 100, 
-            timestamp: "0x1".to_string(), 
-        },
-    ];
+    let allocations = vec![Allocation {
+        address: "0x123".to_string(),
+        amount: 100,
+        timestamp: "0x1".to_string(),
+    }];
     let tree = MerkleTree::new(allocations.clone());
     assert_eq!(tree.get_allocations().len(), 1);
 
@@ -73,15 +76,15 @@ fn test_single_allocation() {
 #[test]
 fn test_large_amounts() {
     let allocations = vec![
-        Allocation { 
-            address: "0xabc".to_string(), 
+        Allocation {
+            address: "0xabc".to_string(),
             amount: 1_000_000_000_000, // Large amount
-            timestamp: "0x1".to_string(), 
+            timestamp: "0x1".to_string(),
         },
         Allocation {
-            address: "0xdef".to_string(), 
+            address: "0xdef".to_string(),
             amount: 2_000_000_000_000, // Large amount
-            timestamp: "0x2".to_string(), 
+            timestamp: "0x2".to_string(),
         },
     ];
     let tree = MerkleTree::new(allocations);
@@ -100,19 +103,19 @@ fn test_large_amounts() {
 #[test]
 fn test_invalid_address() {
     let allocations = vec![
-        Allocation { 
-            address: "0x123".to_string(), 
-            amount: 100, 
-            timestamp: "0x1".to_string(), 
+        Allocation {
+            address: "0x123".to_string(),
+            amount: 100,
+            timestamp: "0x1".to_string(),
         },
         Allocation {
-            address: "0x456".to_string(), 
-            amount: 200, 
-            timestamp: "0x2".to_string(), 
+            address: "0x456".to_string(),
+            amount: 200,
+            timestamp: "0x2".to_string(),
         },
     ];
     let tree = MerkleTree::new(allocations);
-    
+
     let proof = tree.build_address_calldata("0x789", 100, "0x1");
     assert!(proof.is_err()); // should fail
 }
@@ -120,27 +123,31 @@ fn test_invalid_address() {
 #[test]
 fn test_odd_number_of_allocations() {
     let allocations = vec![
-        Allocation { 
-            address: "0x111".to_string(), 
-            amount: 50, 
-            timestamp: "0x1".to_string(), 
+        Allocation {
+            address: "0x111".to_string(),
+            amount: 50,
+            timestamp: "0x1".to_string(),
         },
-        Allocation { 
-            address: "0x222".to_string(), 
-            amount: 75, 
-            timestamp: "0x2".to_string(), 
+        Allocation {
+            address: "0x222".to_string(),
+            amount: 75,
+            timestamp: "0x2".to_string(),
         },
-        Allocation { 
-            address: "0x333".to_string(), 
-            amount: 125, 
-            timestamp: "0x3".to_string(), 
+        Allocation {
+            address: "0x333".to_string(),
+            amount: 125,
+            timestamp: "0x3".to_string(),
         },
     ];
     let tree = MerkleTree::new(allocations.clone());
     assert_eq!(tree.get_allocations().len(), 3);
 
     let allocation = &allocations[0];
-    let proof = tree.build_address_calldata(&allocation.address, allocation.amount, &allocation.timestamp);
+    let proof = tree.build_address_calldata(
+        &allocation.address,
+        allocation.amount,
+        &allocation.timestamp,
+    );
     assert!(proof.is_ok());
 
     let calldata = proof.unwrap();
@@ -152,24 +159,30 @@ fn test_odd_number_of_allocations() {
 
 #[test]
 fn test_merkle_tree_with_mock_data() {
-    let file = File::open("tests/mock_allocations_first_wave.json").expect("Fichier non trouvé");
+    let file = File::open("tests/mock_allocations_first_wave.json").expect("File not found");
     let reader = BufReader::new(file);
-    let allocations: Vec<Allocation> = from_reader(reader).expect("Erreur lors de la lecture du JSON");
+    let allocations: Vec<Allocation> = from_reader(reader).expect("Error reading JSON");
 
     let tree = MerkleTree::new(allocations.clone());
 
     assert_eq!(tree.get_allocations().len(), allocations.len());
-
-    println!("Root hash: {:?}", tree.root.value);
     assert!(format!("{:#x}", tree.root.value).starts_with("0x"));
 
     // Verify proof generation for each allocation
     for allocation in allocations.iter() {
-        let proof = tree.build_address_calldata(&allocation.address, allocation.amount, &allocation.timestamp);
-        assert!(proof.is_ok(), "Proof generation failed for allocation {:?}", allocation.address);
+        let proof = tree.build_address_calldata(
+            &allocation.address,
+            allocation.amount,
+            &allocation.timestamp,
+        );
+        assert!(
+            proof.is_ok(),
+            "Proof generation failed for allocation {:?}",
+            allocation.address
+        );
 
         let calldata = proof.unwrap();
-        // println!("Calldata for {}: {:?}", allocation.address, calldata);
+        println!("Calldata for {}: {:?}", allocation.address, calldata);
 
         // Verify that the right amount is included in the proof
         assert!(
@@ -204,8 +217,16 @@ fn test_merge_trees_with_new_allocations() {
 
     // Verify proof generation for each allocation from the old tree
     for allocation in old_allocations.iter() {
-        let proof = merged_tree.build_address_calldata(&allocation.address, allocation.amount, &allocation.timestamp);
-        assert!(proof.is_ok(), "Proof generation failed for old allocation {:?}", allocation.address);
+        let proof = merged_tree.build_address_calldata(
+            &allocation.address,
+            allocation.amount,
+            &allocation.timestamp,
+        );
+        assert!(
+            proof.is_ok(),
+            "Proof generation failed for old allocation {:?}",
+            allocation.address
+        );
 
         let calldata = proof.unwrap();
         assert!(
@@ -218,8 +239,16 @@ fn test_merge_trees_with_new_allocations() {
 
     // Verify proof generation for each allocation from the new tree
     for allocation in new_allocations.iter() {
-        let proof = merged_tree.build_address_calldata(&allocation.address, allocation.amount, &allocation.timestamp);
-        assert!(proof.is_ok(), "Proof generation failed for new allocation {:?}", allocation.address);
+        let proof = merged_tree.build_address_calldata(
+            &allocation.address,
+            allocation.amount,
+            &allocation.timestamp,
+        );
+        assert!(
+            proof.is_ok(),
+            "Proof generation failed for new allocation {:?}",
+            allocation.address
+        );
 
         let calldata = proof.unwrap();
         assert!(

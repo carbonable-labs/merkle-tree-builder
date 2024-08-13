@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use starknet::core::types::Felt;
-use starknet_crypto::{pedersen_hash};
+use starknet_crypto::pedersen_hash;
 use std::collections::HashSet;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -44,7 +44,12 @@ impl MerkleTree {
         &self.allocations
     }
 
-    pub fn build_address_calldata(&self, address: &str, amount: u64, timestamp: &str) -> Result<Vec<String>, ()> {
+    pub fn build_address_calldata(
+        &self,
+        address: &str,
+        amount: u64,
+        timestamp: &str,
+    ) -> Result<Vec<String>, ()> {
         let felt_address = Felt::from_hex(address).map_err(|_| ())?;
         let felt_amount = u64_to_felt(amount);
         let felt_timestamp = Felt::from_hex(timestamp).map_err(|_| ())?;
@@ -128,7 +133,11 @@ fn build_tree(leaves: Vec<Node>) -> Node {
         let mut next_level = vec![];
         for chunk in nodes.chunks(2) {
             let left = chunk[0].clone();
-            let right = if chunk.len() == 2 { chunk[1].clone() } else { left.clone() };
+            let right = if chunk.len() == 2 {
+                chunk[1].clone()
+            } else {
+                left.clone()
+            };
             next_level.push(Node::new(left, right));
         }
         nodes = next_level;

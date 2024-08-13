@@ -29,5 +29,7 @@
     {"address": "0x1234567890abcdef1234567890abcdefabcdef12", "amount": 2800, "timestamp": "0x1B"},
     {"address": "0xabcdefabcdefabcdefabcdefabcdefabcdef1234", "amount": 2900, "timestamp": "0x1D"},
     {"address": "0xabcdef1234567890abcdef1234567890abcdef12", "amount": 3000, "timestamp": "0x1E"},
-    {"address": "0x1234567890abcdefabcdefabcdefabcdef1234", "amount": 3100, "timestamp": "0x20"}
+    {"address": "0x1234567890abcdefabcdefabcdefabcdef1234", "amount": 3100, "timestamp": "0x20"},
+    {"address": "0x1234567890abcdef1234567890abcdef12345678", "amount": 150, "timestamp": "0x4"}
+
 ]

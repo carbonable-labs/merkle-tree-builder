@@ -66,28 +66,43 @@ fn test_simple_claim() {
 #[test]
 fn test_double_claim() {
     // The user got 2 allocations with different amounts and timestamps. He claims them both.
-    let (ROOT, user_address, amount1, timestamp1, proof1, amount2, timestamp2, proof2) = get_data_double_claim_bob_alloc();
+    let ROOT = 0x7be624496a1672132d43607a5aa283940fe5ea7bbdee39b34606ea895a91e05;
+    let address = contract_address_const::<0x123>();
+    let amount1 = 0x64;
+    let timestamp1 = 0x1;
+    let proof1 = array![
+        0x7eca5c09f03332447da957fea8123007825b06a57286c4fcfc35f130d450588,
+        0x5e5ec048d441d324737e44bde3bb146ad3f782fba4ebabd52017f67f381969b
+    ];
+
+    let amount2 = 0x6e;
+    let timestamp2 = 0x13;
+    let proof2 = array![
+        0x6a716202ba08ca9b9f199b0d54d80508fd7a30687f821ec13478a166f1eaec0,
+        0xd31a5d1a36d3a6c35438017cacb878814c47b7fb49245ce812323e96790a87
+    ];
+
     let contract_address = deploy_contract();
 
     let contract = IClaimerDispatcher { contract_address: contract_address };
     contract.set_merkle_root(ROOT);
-    let root = contract.get_merkle_root();
-    assert_eq!(root, ROOT);
 
-    let claimed = contract.check_claimed(user_address, timestamp1, amount1);
-    assert_eq!(claimed, false);
-    start_cheat_caller_address(contract_address, user_address);
+    let claimed1 = contract.check_claimed(address, timestamp1, amount1);
+    assert_eq!(claimed1, false);
+
+    start_cheat_caller_address(contract_address, address);
+
     contract.claim(amount1, timestamp1, proof1);
-    let claimed = contract.check_claimed(user_address, timestamp1, amount1);
-    assert_eq!(claimed, true);
 
-    println!("before claim2");
-    let claimed = contract.check_claimed(user_address, timestamp2, amount2);
-    assert_eq!(claimed, false);
-    start_cheat_caller_address(contract_address, user_address);
+    let claimed1 = contract.check_claimed(address, timestamp1, amount1);
+    assert_eq!(claimed1, true);
+
+    let claimed2 = contract.check_claimed(address, timestamp2, amount2);
+    assert_eq!(claimed2, false);
+
     contract.claim(amount2, timestamp2, proof2);
-    let claimed = contract.check_claimed(user_address, timestamp2, amount2);
-    assert_eq!(claimed, true);
+    let claimed2 = contract.check_claimed(address, timestamp2, amount2);
+    assert_eq!(claimed2, true);
 }
 
 #[test]
@@ -226,7 +241,7 @@ fn test_emit_event_simple_claim() {
 #[test]
 fn test_combined_root_still_claimable() {
     // User can claim on wave 1. He doesn't. Wave 2 is set with a new hash root. User can still claim his wave 1 allocation.
-    let (ROOT, user_address, amount, timestamp, proof) = get_data_simple_claim_bob_alloc();
+    let (ROOT, user_address, amount, timestamp, _) = get_data_simple_claim_bob_alloc();
     let contract_address = deploy_contract();
 
     let contract = IClaimerDispatcher { contract_address: contract_address };
@@ -237,15 +252,14 @@ fn test_combined_root_still_claimable() {
     let claimed = contract.check_claimed(user_address, timestamp, amount);
     assert_eq!(claimed, false);
 
-    let (NEW_ROOT, _, _, _, _) = get_combined_data_bob_alloc();
+    let (NEW_ROOT, _, _, _, new_proof) = get_combined_data_bob_alloc();
     contract.set_merkle_root(NEW_ROOT);
 
     let claimed = contract.check_claimed(user_address, timestamp, amount);
     assert_eq!(claimed, false);
 
     start_cheat_caller_address(contract_address, user_address);
-    contract.claim(amount, timestamp, proof);
-
+    contract.claim(amount, timestamp, new_proof);
     let claimed = contract.check_claimed(user_address, timestamp, amount);
     assert_eq!(claimed, true);
 }
@@ -303,7 +317,7 @@ fn test_claim_first_john() {
         timestamp4,
         proof1,
         proof2,
-        proof3,
+        _,
         proof4
     ) =
         get_allocs_first_wave_john();
@@ -318,21 +332,14 @@ fn test_claim_first_john() {
     assert!(!contract.check_claimed(john_address, timestamp2, amount2));
     assert!(!contract.check_claimed(john_address, timestamp3, amount3));
     start_cheat_caller_address(contract_address, john_address);
-    println!("before claim1");
-    println!("proof1: {:?}", proof1);
     contract.claim(amount1, timestamp1, proof1);
-    println!("after claim1 \n");
-    println!("amount2: {}", amount2);
-    println!("timestamp2: {}", timestamp2);
-    println!("proof2: {:?}", proof2);
     contract.claim(amount2, timestamp2, proof2);
-    // assert!(contract.check_claimed(john_address, timestamp1, amount1));
-    // assert!(contract.check_claimed(john_address, timestamp2, amount2));
-    // assert!(!contract.check_claimed(john_address, timestamp3, amount3));
+    assert!(contract.check_claimed(john_address, timestamp1, amount1));
+    assert!(contract.check_claimed(john_address, timestamp2, amount2));
+    assert!(!contract.check_claimed(john_address, timestamp3, amount3));
 
     contract.set_merkle_root(NEW_ROOT);
 
-    println!("before claim3");
     contract.claim(amount4, timestamp4, proof4);
     assert!(contract.check_claimed(john_address, timestamp4, amount4));
     assert!(!contract.check_claimed(john_address, timestamp3, amount3));

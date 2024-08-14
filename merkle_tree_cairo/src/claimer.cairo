@@ -63,8 +63,6 @@ pub mod Claimer {
             let intermediate_hash = LegacyHash::hash(claimee_felt, amount_felt);
             let leaf = LegacyHash::hash(intermediate_hash, timestamp_felt);
 
-            println!("leaf: {}", leaf);
-
             let root_computed = merkle_tree.compute_root(leaf, proof.span());
             let stored_root = self.merkle_root.read();
             assert(root_computed == stored_root, 'Invalid proof');

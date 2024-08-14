@@ -4,7 +4,8 @@ use starknet_crypto::pedersen_hash;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
-#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]pub struct Allocation {
+#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct Allocation {
     pub address: String,
     pub amount: u64,
     pub timestamp: String,
@@ -18,7 +19,7 @@ impl Hash for Allocation {
     }
 }
 
-pub struct MerkleTree { 
+pub struct MerkleTree {
     pub root: Node,
     allocations: Vec<Allocation>,
 }
@@ -63,27 +64,24 @@ impl MerkleTree {
             amount,
             timestamp: timestamp.to_string(),
         };
-    
+
         // Compute the leaf node hash for this allocation
         let felt_address = Felt::from_hex(address).map_err(|_| ())?;
         let felt_amount = u64_to_felt(amount);
         let felt_timestamp = Felt::from_hex(timestamp).map_err(|_| ())?;
-    
-        let intermediate_hash = pedersen_hash(&felt_address, &felt_amount);
-        let target_leaf = pedersen_hash(&intermediate_hash, &felt_timestamp);
-    
+
         // Traverse the tree to find the proof path for the target leaf
         let mut hashes: Vec<Felt> = vec![];
         let mut current_node = &self.root;
-    
+
         loop {
             if current_node.left_child.is_none() && current_node.right_child.is_none() {
                 break;
             }
-    
+
             let left = current_node.left_child.as_ref().unwrap();
             let right = current_node.right_child.as_ref().unwrap();
-    
+
             if left.accessible_allocations.contains(&allocation) {
                 hashes.push(right.value);
                 current_node = left;
@@ -94,14 +92,13 @@ impl MerkleTree {
                 return Err(()); // Allocation not found
             }
         }
-    
+
         hashes.reverse();
         let mut calldata = vec![felt_address, felt_amount, felt_timestamp];
         calldata.extend(hashes);
-    
+
         Ok(calldata.iter().map(|f| format!("{:#x}", f)).collect())
     }
-    
 
     pub fn merge_merkle_trees(&self, new_allocations: Vec<Allocation>) -> MerkleTree {
         let mut combined_allocations = self.get_allocations().clone();

@@ -35,6 +35,30 @@ fn test_set_merkle_root() {
     contract.set_merkle_root(MERKLE_ROOT_FIRST_WAVE);
     let root = contract.get_merkle_root();
     assert_eq!(root, MERKLE_ROOT_FIRST_WAVE);
+
+    let proof: Array<felt252> = array![
+        0x7eca5c09f03332447da957fea8123007825b06a57286c4fcfc35f130d450588
+    ];
+    let address = contract_address_const::<0x123>();
+    let amount = 100;
+    let timestamp = 1;
+
+    assert!(!contract.check_claimed(address, timestamp, amount));
+    start_cheat_caller_address(contract_address, address);
+
+    contract.claim(amount, timestamp, proof);
+    assert!(contract.check_claimed(address, timestamp, amount));
+}
+
+#[test]
+fn test_set_simple_test() {
+    /// Test that the Merkle root can be set and retrieved correctly.
+    let contract_address = deploy_contract();
+    let contract = IClaimerDispatcher { contract_address };
+
+    contract.set_merkle_root(0xd31a5d1a36d3a6c35438017cacb878814c47b7fb49245ce812323e96790a87);
+    let root = contract.get_merkle_root();
+    assert_eq!(root, MERKLE_ROOT_FIRST_WAVE);
 }
 
 #[test]

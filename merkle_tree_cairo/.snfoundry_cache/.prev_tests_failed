@@ -1,0 +1,2 @@
+tests::tests_merkle_tree::test_set_merkle_root
+tests::tests_merkle_tree::test_set_simple_test

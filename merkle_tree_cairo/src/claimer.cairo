@@ -16,7 +16,9 @@ pub trait IClaimer<TContractState> {
 #[starknet::contract]
 pub mod Claimer {
     use starknet::{ContractAddress, ClassHash, get_caller_address};
-    use merkle_tree_cairo::merkle_tree::MerkleTreeTrait;
+    use alexandria_merkle_tree::merkle_tree::{
+        Hasher, MerkleTree, MerkleTreeImpl, pedersen::PedersenHasherImpl, MerkleTreeTrait,
+    };
     use core::hash::LegacyHash;
 
     #[derive(Copy, Drop, Debug, Hash, starknet::Store, Serde, PartialEq)]
@@ -53,7 +55,7 @@ pub mod Claimer {
     #[abi(embed_v0)]
     impl ClaimerImpl of super::IClaimer<ContractState> {
         fn claim(ref self: ContractState, amount: u128, timestamp: u128, proof: Array::<felt252>) {
-            let mut merkle_tree = MerkleTreeTrait::new();
+            let mut merkle_tree: MerkleTree<Hasher> = MerkleTreeImpl::new();
             let claimee = get_caller_address();
             // [Verify the proof]
             let amount_felt: felt252 = amount.into();
@@ -64,6 +66,7 @@ pub mod Claimer {
             let leaf = LegacyHash::hash(intermediate_hash, timestamp_felt);
 
             let root_computed = merkle_tree.compute_root(leaf, proof.span());
+
             let stored_root = self.merkle_root.read();
             assert(root_computed == stored_root, 'Invalid proof');
 

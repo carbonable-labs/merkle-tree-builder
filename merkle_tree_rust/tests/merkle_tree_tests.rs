@@ -10,11 +10,13 @@ fn test_merkle_tree_creation() {
             address: "0x123".to_string(),
             amount: 100,
             timestamp: "0x1".to_string(),
+            id: 1,
         },
         Allocation {
             address: "0x456".to_string(),
             amount: 200,
             timestamp: "0x2".to_string(),
+            id: 1,
         },
     ];
     let tree = MerkleTree::new(allocations);
@@ -28,28 +30,34 @@ fn test_merkle_tree_proof() {
             address: "0x123".to_string(),
             amount: 100,
             timestamp: "0x1".to_string(),
+            id: 1,
         },
         Allocation {
             address: "0x456".to_string(),
             amount: 200,
             timestamp: "0x2".to_string(),
+            id: 1,
         },
     ];
     let tree = MerkleTree::new(allocations.clone());
+    println!("hashroot {:?}", tree.root.value);
     let allocation = &allocations[0];
     let proof = tree.build_address_calldata(
         &allocation.address,
         allocation.amount,
         &allocation.timestamp,
+        allocation.id,
     );
+    println!("proof 1 {:?}", proof);
     assert!(proof.is_ok());
 
     // [Verification]
     let calldata = proof.unwrap();
-    assert_eq!(calldata.len(), 3 + 1); // Address, amount, timestamp + 1 hash of proof
+    assert_eq!(calldata.len(), 4 + 1); // Address, amount, timestamp + 1 hash of proof
     assert_eq!(calldata[0], "0x123");
     assert_eq!(calldata[1], "0x64"); // 100 in hex is 0x64
     assert_eq!(calldata[2], "0x1");
+    assert_eq!(calldata[3], "0x1");
 }
 
 #[test]
@@ -59,16 +67,19 @@ fn test_merkle_tree_double_alloc() {
             address: "0x123".to_string(),
             amount: 100,
             timestamp: "0x1".to_string(),
+            id: 1,
         },
         Allocation {
             address: "0x456".to_string(),
             amount: 200,
             timestamp: "0x2".to_string(),
+            id: 1,
         },
         Allocation {
             address: "0x123".to_string(),
             amount: 110,
             timestamp: "0x13".to_string(),
+            id: 2,
         },
     ];
     let tree = MerkleTree::new(allocations.clone());
@@ -77,6 +88,7 @@ fn test_merkle_tree_double_alloc() {
         &allocation.address,
         allocation.amount,
         &allocation.timestamp,
+        allocation.id,
     );
 
     println!("proof 1 {:?}", proof);
@@ -86,6 +98,7 @@ fn test_merkle_tree_double_alloc() {
         &allocation.address,
         allocation.amount,
         &allocation.timestamp,
+        allocation.id,
     );
     println!("proof 2{:?}", proof);
     assert!(proof.is_ok());
@@ -95,10 +108,113 @@ fn test_merkle_tree_double_alloc() {
 
     // [Verification]
     let calldata = proof.unwrap();
-    assert_eq!(calldata.len(), 4 + 1); // Address, amount, timestamp + 1 hash of proof
+    assert_eq!(calldata.len(), 5 + 1); // Address, amount, timestamp + 1 hash of proof
     assert_eq!(calldata[0], "0x123");
     assert_eq!(calldata[1], "0x6e"); // 100 in hex is 0x64
     assert_eq!(calldata[2], "0x13");
+    assert_eq!(calldata[3], "0x2");
+}
+
+#[test]
+fn test_merkle_tree_double_alloc_same_timestamp() {
+    let allocations = vec![
+        Allocation {
+            address: "0x123".to_string(),
+            amount: 100,
+            timestamp: "0x1".to_string(),
+            id: 1,
+        },
+        Allocation {
+            address: "0x456".to_string(),
+            amount: 200,
+            timestamp: "0x2".to_string(),
+            id: 1,
+        },
+        Allocation {
+            address: "0x123".to_string(),
+            amount: 110,
+            timestamp: "0x1".to_string(),
+            id: 2,
+        },
+    ];
+    let tree = MerkleTree::new(allocations.clone());
+    let allocation = &allocations[0];
+    let proof = tree.build_address_calldata(
+        &allocation.address,
+        allocation.amount,
+        &allocation.timestamp,
+        allocation.id,
+    );
+    println!("proof 1 {:?}", proof);
+
+    let allocation = &allocations[2];
+    let proof = tree.build_address_calldata(
+        &allocation.address,
+        allocation.amount,
+        &allocation.timestamp,
+        allocation.id,
+    );
+    assert!(proof.is_ok());
+
+    // [Verification]
+    let calldata = proof.unwrap();
+    assert_eq!(calldata.len(), 5 + 1); // Address, amount, timestamp + 1 hash of proof
+    assert_eq!(calldata[0], "0x123");
+    assert_eq!(calldata[1], "0x6e"); // 100 in hex is 0x64
+    assert_eq!(calldata[2], "0x1");
+    assert_eq!(calldata[3], "0x2");
+}
+
+#[test]
+fn test_merkle_tree_double_alloc_same_allocation() {
+    let allocations = vec![
+        Allocation {
+            address: "0x123".to_string(),
+            amount: 100,
+            timestamp: "0x1".to_string(),
+            id: 1,
+        },
+        Allocation {
+            address: "0x456".to_string(),
+            amount: 200,
+            timestamp: "0x2".to_string(),
+            id: 1,
+        },
+        Allocation {
+            address: "0x123".to_string(),
+            amount: 100,
+            timestamp: "0x1".to_string(),
+            id: 2,
+        },
+    ];
+    let tree = MerkleTree::new(allocations.clone());
+    println!("hashroot {:?}", tree.root.value);
+    let allocation = &allocations[0];
+    let proof1 = tree.build_address_calldata(
+        &allocation.address,
+        allocation.amount,
+        &allocation.timestamp,
+        allocation.id,
+    );
+    println!("proof 1 {:?}", proof1);
+
+    let allocation = &allocations[2];
+    let proof2 = tree.build_address_calldata(
+        &allocation.address,
+        allocation.amount,
+        &allocation.timestamp,
+        allocation.id,
+    );
+    assert!(proof2.is_ok());
+    println!("proof 2 {:?}", proof2);
+
+    // [Verification]
+    let calldata = proof1.unwrap();
+    assert_eq!(calldata.len(), 5 + 1); // Address, amount, timestamp + 1 hash of proof
+    assert_eq!(calldata[0], "0x123");
+    assert_eq!(calldata[1], "0x64"); // 100 in hex is 0x64
+    assert_eq!(calldata[2], "0x1");
+    assert_eq!(calldata[3], "0x1");
 }
 
 #[test]
@@ -108,18 +224,20 @@ fn test_single_allocation() {
         address: "0x123".to_string(),
         amount: 100,
         timestamp: "0x1".to_string(),
+        id: 1,
     }];
     let tree = MerkleTree::new(allocations.clone());
     assert_eq!(tree.get_allocations().len(), 1);
 
-    let proof = tree.build_address_calldata("0x123", 100, "0x1");
+    let proof = tree.build_address_calldata("0x123", 100, "0x1", 1);
     assert!(proof.is_ok());
 
     let calldata = proof.unwrap();
-    assert_eq!(calldata.len(), 3 + 1);
+    assert_eq!(calldata.len(), 4 + 1);
     assert_eq!(calldata[0], "0x123");
     assert_eq!(calldata[1], "0x64"); // 100 in hex is 0x64
     assert_eq!(calldata[2], "0x1");
+    assert_eq!(calldata[3], "0x1");
 }
 
 #[test]
@@ -129,24 +247,27 @@ fn test_large_amounts() {
             address: "0xabc".to_string(),
             amount: 1_000_000_000_000, // Large amount
             timestamp: "0x1".to_string(),
+            id: 1,
         },
         Allocation {
             address: "0xdef".to_string(),
             amount: 2_000_000_000_000, // Large amount
             timestamp: "0x2".to_string(),
+            id: 1,
         },
     ];
     let tree = MerkleTree::new(allocations);
     assert_eq!(tree.get_allocations().len(), 2);
 
-    let proof = tree.build_address_calldata("0xabc", 1_000_000_000_000, "0x1");
+    let proof = tree.build_address_calldata("0xabc", 1_000_000_000_000, "0x1", 1);
     assert!(proof.is_ok());
 
     let calldata = proof.unwrap();
-    assert_eq!(calldata.len(), 3 + 1);
+    assert_eq!(calldata.len(), 4 + 1);
     assert_eq!(calldata[0], "0xabc");
     assert_eq!(calldata[1], "0xe8d4a51000"); // 1_000_000_000_000 in hex is 0xe8d4a51000
     assert_eq!(calldata[2], "0x1");
+    assert_eq!(calldata[3], "0x1");
 }
 
 #[test]
@@ -156,16 +277,18 @@ fn test_invalid_address() {
             address: "0x123".to_string(),
             amount: 100,
             timestamp: "0x1".to_string(),
+            id: 1,
         },
         Allocation {
             address: "0x456".to_string(),
             amount: 200,
             timestamp: "0x2".to_string(),
+            id: 1,
         },
     ];
     let tree = MerkleTree::new(allocations);
 
-    let proof = tree.build_address_calldata("0x789", 100, "0x1");
+    let proof = tree.build_address_calldata("0x789", 100, "0x1", 1);
     assert!(proof.is_err()); // should fail
 }
 
@@ -176,16 +299,19 @@ fn test_odd_number_of_allocations() {
             address: "0x111".to_string(),
             amount: 50,
             timestamp: "0x1".to_string(),
+            id: 1,
         },
         Allocation {
             address: "0x222".to_string(),
             amount: 75,
             timestamp: "0x2".to_string(),
+            id: 1,
         },
         Allocation {
             address: "0x333".to_string(),
             amount: 125,
             timestamp: "0x3".to_string(),
+            id: 1,
         },
     ];
     let tree = MerkleTree::new(allocations.clone());
@@ -196,14 +322,16 @@ fn test_odd_number_of_allocations() {
         &allocation.address,
         allocation.amount,
         &allocation.timestamp,
+        allocation.id,
     );
     assert!(proof.is_ok());
 
     let calldata = proof.unwrap();
-    assert_eq!(calldata.len(), 3 + 2); // Address, amount, timestamp + 2 hashes of proof
+    assert_eq!(calldata.len(), 4 + 2); // Address, amount, timestamp + 2 hashes of proof
     assert_eq!(calldata[0], "0x111");
     assert_eq!(calldata[1], "0x32"); // 50 in hex is 0x32
     assert_eq!(calldata[2], "0x1");
+    assert_eq!(calldata[3], "0x1");
 }
 
 #[test]
@@ -223,6 +351,7 @@ fn test_merkle_tree_with_mock_data() {
             &allocation.address,
             allocation.amount,
             &allocation.timestamp,
+            allocation.id,
         );
         assert!(
             proof.is_ok(),
@@ -270,6 +399,7 @@ fn test_merge_trees_with_new_allocations() {
             &allocation.address,
             allocation.amount,
             &allocation.timestamp,
+            allocation.id,
         );
         assert!(
             proof.is_ok(),
@@ -292,6 +422,7 @@ fn test_merge_trees_with_new_allocations() {
             &allocation.address,
             allocation.amount,
             &allocation.timestamp,
+            allocation.id,
         );
         assert!(
             proof.is_ok(),

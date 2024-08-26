@@ -9,6 +9,7 @@ pub struct Allocation {
     pub address: String,
     pub amount: u64,
     pub timestamp: String,
+    pub id: u64,
 }
 
 impl Hash for Allocation {
@@ -16,6 +17,7 @@ impl Hash for Allocation {
         self.address.hash(state);
         self.amount.hash(state);
         self.timestamp.hash(state);
+        self.id.hash(state);
     }
 }
 
@@ -58,17 +60,20 @@ impl MerkleTree {
         address: &str,
         amount: u64,
         timestamp: &str,
+        id: u64,
     ) -> Result<Vec<String>, ()> {
         let allocation = Allocation {
             address: address.to_string(),
             amount,
             timestamp: timestamp.to_string(),
+            id,
         };
 
         // Compute the leaf node hash for this allocation
         let felt_address = Felt::from_hex(address).map_err(|_| ())?;
         let felt_amount = u64_to_felt(amount);
         let felt_timestamp = Felt::from_hex(timestamp).map_err(|_| ())?;
+        let felt_id = u64_to_felt(id);
 
         // Traverse the tree to find the proof path for the target leaf
         let mut hashes: Vec<Felt> = vec![];
@@ -94,7 +99,7 @@ impl MerkleTree {
         }
 
         hashes.reverse();
-        let mut calldata = vec![felt_address, felt_amount, felt_timestamp];
+        let mut calldata = vec![felt_address, felt_amount, felt_timestamp, felt_id];
         calldata.extend(hashes);
 
         Ok(calldata.iter().map(|f| format!("{:#x}", f)).collect())
@@ -130,9 +135,11 @@ impl Node {
         let address = Felt::from_hex(&allocation.address).unwrap();
         let amount = u64_to_felt(allocation.amount);
         let timestamp = Felt::from_hex(&allocation.timestamp).unwrap();
+        let id = u64_to_felt(allocation.id);
 
         let intermediate_hash = pedersen_hash(&address, &amount);
-        let value = pedersen_hash(&intermediate_hash, &timestamp);
+        let intermediate_hash = pedersen_hash(&intermediate_hash, &timestamp);
+        let value = pedersen_hash(&intermediate_hash, &id);
 
         Node {
             left_child: None,

@@ -33,6 +33,7 @@ fn main() {
                 &allocation.address,
                 allocation.amount,
                 &allocation.timestamp,
+                allocation.id,
             )
             .expect("Proof generation failed");
 
@@ -88,6 +89,7 @@ fn main() {
                 &allocation.address,
                 allocation.amount,
                 &allocation.timestamp,
+                allocation.id,
             )
             .expect("Proof generation failed");
 

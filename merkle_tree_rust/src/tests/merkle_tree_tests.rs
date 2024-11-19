@@ -40,7 +40,6 @@ fn test_merkle_tree_proof() {
         },
     ];
     let tree = MerkleTree::new(allocations.clone());
-    println!("hashroot {:?}", tree.root.value);
     let allocation = &allocations[0];
     let proof = tree.build_address_calldata(
         &allocation.address,
@@ -48,7 +47,6 @@ fn test_merkle_tree_proof() {
         &allocation.timestamp,
         allocation.id,
     );
-    println!("proof 1 {:?}", proof);
     assert!(proof.is_ok());
 
     // [Verification]

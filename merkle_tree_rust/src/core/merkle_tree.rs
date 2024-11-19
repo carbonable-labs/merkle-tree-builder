@@ -1,5 +1,5 @@
-use crate::allocation::Allocation;
-use crate::node::Node;
+use crate::core::allocation::Allocation;
+use crate::core::node::Node;
 use starknet::core::types::Felt;
 
 pub struct MerkleTree {
@@ -69,7 +69,8 @@ impl MerkleTree {
         }
 
         hashes.reverse();
-        let mut calldata = allocation.to_felts().unwrap().to_vec();
+        let felts = allocation.to_felts().unwrap();
+        let mut calldata = vec![felts.0, felts.1, felts.2, felts.3];
         calldata.extend(hashes);
 
         Ok(calldata.iter().map(|f| format!("{:#x}", f)).collect())
@@ -89,7 +90,11 @@ fn build_tree(mut leaves: Vec<Node>) -> Node {
         let mut next_level = vec![];
         for chunk in leaves.chunks(2) {
             let left = chunk[0].clone();
-            let right = if chunk.len() == 2 { chunk[1].clone() } else { left.clone() };
+            let right = if chunk.len() == 2 {
+                chunk[1].clone()
+            } else {
+                left.clone()
+            };
             next_level.push(Node::new(left, right));
         }
         leaves = next_level;

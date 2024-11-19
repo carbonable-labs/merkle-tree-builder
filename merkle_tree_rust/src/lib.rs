@@ -1,3 +1,9 @@
-mod merkle_tree;
+pub mod core {
+    pub mod allocation;
+    pub mod merkle_tree;
+    pub mod node;
+}
 
-pub use crate::merkle_tree::{u64_to_felt, Allocation, MerkleTree, Node};
+// pub mod tests;
+
+// pub mod utils;

@@ -1,6 +1,6 @@
-use crate::allocation::{Allocation, u64_to_felt};
-use starknet_crypto::pedersen_hash;
+use crate::core::allocation::{u64_to_felt, Allocation};
 use starknet::core::types::Felt;
+use starknet_crypto::pedersen_hash;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
@@ -14,11 +14,7 @@ pub struct Node {
 impl Node {
     /// Combines two nodes into a new parent node.
     pub fn new(a: Node, b: Node) -> Self {
-        let (left_child, right_child) = if a.value < b.value {
-            (a, b)
-        } else {
-            (b, a)
-        };
+        let (left_child, right_child) = if a.value < b.value { (a, b) } else { (b, a) };
         let value = pedersen_hash(&left_child.value, &right_child.value);
         let mut accessible_allocations = HashSet::new();
         accessible_allocations.extend(left_child.accessible_allocations.clone());

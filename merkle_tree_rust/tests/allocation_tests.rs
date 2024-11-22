@@ -1,8 +1,9 @@
-#[warn(unused_imports)]
-
 #[cfg(test)]
 mod tests {
-    use std::{hash::{DefaultHasher, Hash, Hasher}, u64};
+    use std::{
+        hash::{DefaultHasher, Hash, Hasher},
+        u64,
+    };
 
     use merkle_tree::core::allocation::{u64_to_felt, Allocation};
     use starknet::core::types::Felt;
@@ -32,7 +33,7 @@ mod tests {
             address: "0x12939jojdo30".to_string(),
             amount: 150,
             timestamp: "0x".to_string(),
-            id: 1
+            id: 1,
         };
         let felts = allocation.to_felts();
         assert!(felts.is_err());
@@ -92,11 +93,10 @@ mod tests {
         assert_ne!(hash, 0, "Hash should not be zero");
         assert_eq!(std::mem::size_of_val(&hash), 8, "Hash should be u64");
 
-        let mut other_state  = DefaultHasher::new();
+        let mut other_state = DefaultHasher::new();
         allocation.hash(&mut other_state);
         let other_hash = other_state.finish();
 
         assert_eq!(hash, other_hash, "Hash should be the same");
-
     }
 }

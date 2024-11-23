@@ -1,10 +1,7 @@
+use merkle_tree::core::{allocation::Allocation, merkle_tree::MerkleTree};
+use serde_json::Value;
 use std::fs;
 use std::path::Path;
-use serde_json::Value;
-use merkle_tree::core::{
-    allocation::Allocation,
-    merkle_tree::MerkleTree
-};
 
 #[cfg(test)]
 mod integration_tests {
@@ -12,11 +9,11 @@ mod integration_tests {
 
     fn load_mock_data(filename: &str) -> Vec<Allocation> {
         let path = Path::new("data").join(filename);
-        let data = fs::read_to_string(path)
-            .unwrap_or_else(|_| panic!("Failed to read {}", filename));
-        let json: Value = serde_json::from_str(&data)
-            .unwrap_or_else(|_| panic!("Failed to parse JSON"));
-        
+        let data =
+            fs::read_to_string(path).unwrap_or_else(|_| panic!("Failed to read {}", filename));
+        let json: Value =
+            serde_json::from_str(&data).unwrap_or_else(|_| panic!("Failed to parse JSON"));
+
         json.as_array()
             .unwrap_or_else(|| panic!("JSON is not an array"))
             .iter()
@@ -40,13 +37,13 @@ mod integration_tests {
                 "0x1234567890abcdef1234567890abcdef12345678",
                 150u64,
                 "0x2",
-                1u64
+                1u64,
             ),
             (
                 "0xabcdefabcdefabcdefabcdefabcdefabcdef1234",
                 200u64,
                 "0x1",
-                1u64
+                1u64,
             ),
         ];
 
@@ -54,7 +51,8 @@ mod integration_tests {
             let result = tree.build_address_calldata(address, *amount, timestamp, *id);
             assert!(
                 result.is_ok(),
-                "Failed to generate proof for first wave allocation: {}", address
+                "Failed to generate proof for first wave allocation: {}",
+                address
             );
         }
     }
@@ -70,13 +68,13 @@ mod integration_tests {
                 "0xabcabcabcabcabcabcabcabcabcabcabcabcabc1",
                 500u64,
                 "0x4",
-                1u64
+                1u64,
             ),
             (
                 "0x7897897897897897897897897897897897897890",
                 400u64,
                 "0xA",
-                1u64
+                1u64,
             ),
         ];
 
@@ -84,7 +82,8 @@ mod integration_tests {
             let result = tree.build_address_calldata(address, *amount, timestamp, *id);
             assert!(
                 result.is_ok(),
-                "Failed to generate proof for second wave allocation: {}", address
+                "Failed to generate proof for second wave allocation: {}",
+                address
             );
         }
     }
@@ -105,14 +104,14 @@ mod integration_tests {
                 "0x1234567890abcdef1234567890abcdef12345678",
                 150u64,
                 "0x2",
-                1u64
+                1u64,
             ),
             // From second wave
             (
                 "0xabcabcabcabcabcabcabcabcabcabcabcabcabc1",
                 500u64,
                 "0x4",
-                1u64
+                1u64,
             ),
         ];
 
@@ -120,7 +119,8 @@ mod integration_tests {
             let result = merged_tree.build_address_calldata(address, *amount, timestamp, *id);
             assert!(
                 result.is_ok(),
-                "Failed to generate proof for allocation in merged tree: {}", address
+                "Failed to generate proof for allocation in merged tree: {}",
+                address
             );
         }
     }
@@ -136,13 +136,13 @@ mod integration_tests {
                 "0x7897897897897897897897897897897897897890",
                 400u64,
                 "0xA",
-                1u64
+                1u64,
             ),
             (
                 "0x7897897897897897897897897897897897897890",
                 150u64,
                 "0xB",
-                2u64
+                2u64,
             ),
         ];
 
@@ -150,7 +150,9 @@ mod integration_tests {
             let result = tree.build_address_calldata(address, *amount, timestamp, *id);
             assert!(
                 result.is_ok(),
-                "Failed to generate proof for duplicate address: {} with amount: {}", address, amount
+                "Failed to generate proof for duplicate address: {} with amount: {}",
+                address,
+                amount
             );
         }
     }
@@ -165,13 +167,13 @@ mod integration_tests {
                 "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
                 999999u64,
                 "0xff",
-                999u64
+                999u64,
             ),
             (
                 "0x0000000000000000000000000000000000000000",
                 0u64,
                 "0x0",
-                0u64
+                0u64,
             ),
         ];
 
@@ -179,7 +181,8 @@ mod integration_tests {
             let result = tree.build_address_calldata(address, *amount, timestamp, *id);
             assert!(
                 result.is_err(),
-                "Should fail for invalid allocation: {}", address
+                "Should fail for invalid allocation: {}",
+                address
             );
         }
     }

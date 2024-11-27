@@ -135,19 +135,36 @@ fn test_merge_merkle_trees() {
         amount: 150,
         timestamp: "0x2".to_string(),
         id: 1,
-    }];
-
-    let allocations2 = vec![Allocation {
+    },
+    Allocation {
         address: "0xabcdefabcdefabcdefabcdefabcdefabcdef1234".to_string(),
         amount: 200,
         timestamp: "0x3".to_string(),
         id: 2,
-    }];
+    }
+    ];
+
+    let allocations2 = vec![
+        Allocation{
+            address: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
+            amount: 150,
+            timestamp: "0x2".to_string(),
+            id: 1,
+        }, // similar to previous allocation
+        Allocation{
+            address: "0x3F5A1E9DAB72F1A8C12D4D9B3A58A7B4425E7B4C".to_string(),
+            amount: 250,
+            timestamp: "0x4".to_string(),
+            id: 5,
+        }
+    ];
+
 
     let tree1 = MerkleTree::new(allocations1);
-    let tree2 = MerkleTree::new(allocations2);
 
-    let merged_tree = tree1.merge_merkle_trees(tree2.get_allocations().clone());
+    let merged_tree = tree1.merge_merkle_trees(allocations2.clone());
     assert!(!merged_tree.root.value.is_zero());
-    assert_eq!(merged_tree.get_allocations().len(), 2);
+    assert_eq!(merged_tree.get_allocations().len(), 4);
+
+    
 }

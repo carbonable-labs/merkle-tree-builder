@@ -31,6 +31,9 @@ mod integration_tests {
         let first_wave = load_mock_data("mock_allocations_first_wave.json");
         let tree = MerkleTree::new(first_wave.clone());
 
+        // Save the initial root hash for comparison
+        let initial_root = tree.root.value;
+
         // Test specific first wave allocations
         let test_cases = [
             (
@@ -54,7 +57,25 @@ mod integration_tests {
                 "Failed to generate proof for first wave allocation: {}",
                 address
             );
+
+            // Verify proof format and content
+            let proof = result.unwrap();
+            assert!(
+                proof.len() > 4,
+                "Proof should contain allocation data and hashes"
+            );
+            assert_eq!(
+                proof[0],
+                address.to_string(),
+                "Address should match in proof"
+            );
         }
+
+        // Verify tree integrity
+        assert_eq!(
+            tree.root.value, initial_root,
+            "Tree root should remain unchanged"
+        );
     }
 
     #[test]
@@ -62,7 +83,9 @@ mod integration_tests {
         let second_wave = load_mock_data("mock_allocations_second_wave.json");
         let tree = MerkleTree::new(second_wave.clone());
 
-        // Test specific second wave allocations
+        // Save initial root for verification
+        let initial_root = tree.root.value;
+
         let test_cases = [
             (
                 "0xabcabcabcabcabcabcabcabcabcabcabcabcabc1",
@@ -85,7 +108,21 @@ mod integration_tests {
                 "Failed to generate proof for second wave allocation: {}",
                 address
             );
+
+            // Verify proof structure
+            let proof = result.unwrap();
+            assert_eq!(
+                proof[0],
+                address.to_string(),
+                "Address should match in proof"
+            );
         }
+
+        // Verify tree integrity
+        assert_eq!(
+            tree.root.value, initial_root,
+            "Tree root should remain unchanged"
+        );
     }
 
     #[test]
@@ -95,9 +132,21 @@ mod integration_tests {
 
         // Create and merge trees
         let first_tree = MerkleTree::new(first_wave.clone());
+        let first_root = first_tree.root.value;
         let merged_tree = first_tree.merge_merkle_trees(second_wave.clone());
 
-        // Test specific allocations from both waves
+        // Verify merged tree contains more allocations
+        assert!(
+            merged_tree.get_allocations().len() > first_wave.len(),
+            "Merged tree should contain more allocations"
+        );
+
+        // Verify merged root is different from first tree's root
+        assert_ne!(
+            merged_tree.root.value, first_root,
+            "Merged tree should have different root hash"
+        );
+
         let test_cases = [
             // From first wave
             (
@@ -122,6 +171,14 @@ mod integration_tests {
                 "Failed to generate proof for allocation in merged tree: {}",
                 address
             );
+
+            // Verify proof structure
+            let proof = result.unwrap();
+            assert_eq!(
+                proof[0],
+                address.to_string(),
+                "Address should match in proof"
+            );
         }
     }
 
@@ -129,8 +186,8 @@ mod integration_tests {
     fn test_duplicate_addresses() {
         let second_wave = load_mock_data("mock_allocations_second_wave.json");
         let tree = MerkleTree::new(second_wave.clone());
+        let initial_root = tree.root.value;
 
-        // Test address that appears multiple times with different allocations
         let test_cases = [
             (
                 "0x7897897897897897897897897897897897897890",
@@ -154,14 +211,28 @@ mod integration_tests {
                 address,
                 amount
             );
+
+            // Verify proof structure
+            let proof = result.unwrap();
+            assert_eq!(
+                proof[0],
+                address.to_string(),
+                "Address should match in proof"
+            );
         }
+
+        // Verify tree integrity maintained
+        assert_eq!(
+            tree.root.value, initial_root,
+            "Tree root should remain unchanged"
+        );
     }
 
     #[test]
     fn test_invalid_allocations() {
         let tree = MerkleTree::new(load_mock_data("mock_allocations_first_wave.json"));
+        let initial_root = tree.root.value;
 
-        // Test with invalid data
         let test_cases = [
             (
                 "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
@@ -185,5 +256,11 @@ mod integration_tests {
                 address
             );
         }
+
+        // Verify tree integrity maintained after invalid attempts
+        assert_eq!(
+            tree.root.value, initial_root,
+            "Tree root should remain unchanged"
+        );
     }
 }

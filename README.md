@@ -37,19 +37,25 @@ cargo build
 ```
 
 💄 Code Style
+
 ```bash
 cargo fmt
 ```
 
 🌡️ Test Rust Code
+
 ```bash
 cargo test
 ```
+
 Compile Cairo Code
+
 ```bash
 scarb build
 ```
+
 Test Cairo Code
+
 ```bash
 scarb test
 ```
@@ -65,4 +71,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md ](CONTRIBUTING.md)for gu
 
 ## License
 
-Merkle Tree Builder follows best security practices but is provided as-is without any warranty. This project is licensed under the Apache License 2.0. 
+Merkle Tree Builder follows best security practices but is provided as-is without any warranty. This project is licensed under the Apache License 2.0.
+
+[![CI/CD](https://github.com/{owner}/{repo}/actions/workflows/ci.yml/badge.svg)](https://github.com/{owner}/{repo}/actions)
+[![codecov](https://codecov.io/gh/{owner}/{repo}/branch/main/graph/badge.svg)](https://codecov.io/gh/{owner}/{repo})

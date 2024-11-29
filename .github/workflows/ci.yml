@@ -1,0 +1,68 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  rust:
+    name: Rust CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+      - name: Lint with clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Run tests
+        run: cargo test --verbose
+
+      - name: Generate coverage
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out Xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+
+  cairo:
+    name: Cairo CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Scarb
+        run: curl -L https://raw.githubusercontent.com/software-mansion/scarb/master/installers/init.sh | sh
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.scarb
+          key: ${{ runner.os }}-scarb-${{ hashFiles('**/Scarb.toml') }}
+
+      - name: Run tests
+        run: scarb test
+
+      - name: Run linter
+        run: scarb fmt --check

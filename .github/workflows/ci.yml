@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Scarb
-        run: curl -L https://raw.githubusercontent.com/software-mansion/scarb/master/installers/init.sh | sh
+        run: curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh
 
       - name: Cache dependencies
         uses: actions/cache@v3

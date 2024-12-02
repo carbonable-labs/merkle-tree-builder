@@ -27,21 +27,21 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('merkle_tree_rust/Cargo.lock') }}
 
       - name: Check formatting
-        run: cargo fmt -- --check
+        run: cargo fmt --manifest-path merkle_tree_rust/Cargo.toml -- --check
 
       - name: Lint with clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --manifest-path merkle_tree_rust/Cargo.toml -- -D warnings
 
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --manifest-path merkle_tree_rust/Cargo.toml --verbose
 
       - name: Generate coverage
         run: |
           cargo install cargo-tarpaulin
-          cargo tarpaulin --out Xml
+          cargo tarpaulin --manifest-path merkle_tree_rust/Cargo.toml --out Xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
@@ -59,10 +59,14 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.scarb
-          key: ${{ runner.os }}-scarb-${{ hashFiles('**/Scarb.toml') }}
+          key: ${{ runner.os }}-scarb-${{ hashFiles('merkle_tree_cairo/Scarb.toml') }}
 
       - name: Run tests
-        run: scarb test
+        run: |
+          cd merkle_tree_cairo
+          scarb test
 
       - name: Run linter
-        run: scarb fmt --check
+        run: |
+          cd merkle_tree_cairo
+          scarb fmt --check

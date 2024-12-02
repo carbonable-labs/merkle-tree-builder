@@ -102,5 +102,5 @@ Contributions are welcome! Please read [CONTRIBUTING.md ](CONTRIBUTING.md)for gu
 
 Merkle Tree Builder follows best security practices but is provided as-is without any warranty. This project is licensed under the Apache License 2.0.
 
-[![CI/CD](https://github.com/{owner}/{repo}/actions/workflows/ci.yml/badge.svg)](https://github.com/{owner}/{repo}/actions)
-[![codecov](https://codecov.io/gh/{owner}/{repo}/branch/main/graph/badge.svg)](https://codecov.io/gh/{owner}/{repo})
+[![CI/CD](https://github.com/carbonable-labs/merkle-tree-builder/actions/workflows/ci.yml/badge.svg)](https://github.com/carbonable-labs/merkle-tree-builder/actions)
+[![codecov](https://codecov.io/gh/carbonable-labs/merkle-tree-builder/branch/main/graph/badge.svg)](https://codecov.io/gh/carbonable-labs/merkle-tree-builder)

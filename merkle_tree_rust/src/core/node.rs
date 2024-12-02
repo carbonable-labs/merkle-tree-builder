@@ -1,4 +1,4 @@
-use crate::core::allocation::{u64_to_felt, Allocation};
+use crate::core::allocation::{Allocation};
 use starknet::core::types::Felt;
 use starknet_crypto::pedersen_hash;
 use std::collections::HashSet;

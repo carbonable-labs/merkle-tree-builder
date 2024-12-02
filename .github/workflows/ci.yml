@@ -1,19 +1,22 @@
 name: CI/CD
 
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
+    branches:
+      - main
+  push:
+    branches:
+      - main
 
 jobs:
+  # Rust CI
   rust:
     name: Rust CI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Rust
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -29,44 +32,57 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('merkle_tree_rust/Cargo.lock') }}
 
-      - name: Check formatting
+      - name: Check Rust formatting
         run: cargo fmt --manifest-path merkle_tree_rust/Cargo.toml -- --check
 
-      - name: Lint with clippy
+      - name: Lint Rust code
         run: cargo clippy --manifest-path merkle_tree_rust/Cargo.toml -- -D warnings
 
-      - name: Run tests
+      - name: Run Rust tests
         run: cargo test --manifest-path merkle_tree_rust/Cargo.toml --verbose
 
-      - name: Generate coverage
+      - name: Generate Rust coverage
         run: |
           cargo install cargo-tarpaulin
           cargo tarpaulin --manifest-path merkle_tree_rust/Cargo.toml --out Xml
 
-      - name: Upload coverage
+      - name: Upload Rust coverage
         uses: codecov/codecov-action@v3
 
-  cairo:
-    name: Cairo CI
+  # Cairo Build
+  cairo_build:
+    name: Cairo Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Scarb
-        run: curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh
+      - name: Setup Scarb
+        uses: software-mansion/setup-scarb@v1
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.scarb
-          key: ${{ runner.os }}-scarb-${{ hashFiles('merkle_tree_cairo/Scarb.toml') }}
-
-      - name: Run tests
-        run: |
-          cd merkle_tree_cairo
-          scarb test
-
-      - name: Run linter
+      - name: Cairo lint
         run: |
           cd merkle_tree_cairo
           scarb fmt --check
+
+      - name: Cairo build
+        run: |
+          cd merkle_tree_cairo
+          scarb build
+
+  # Cairo Tests
+  cairo_tests:
+    name: Cairo Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Scarb
+        uses: software-mansion/setup-scarb@v1
+
+      - name: Setup snfoundry
+        uses: foundry-rs/setup-snfoundry@v3
+
+      - name: Run Cairo tests
+        run: |
+          cd merkle_tree_cairo
+          scarb test
